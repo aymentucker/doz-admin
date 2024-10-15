@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
         // Call individual seeders for each table or feature
         $this->call([
             CategoriesPodcastSeeder::class,
+            PodcastSeeder::class,
             // Add other seeders here
         ]);
 
