@@ -13,6 +13,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Call individual seeders for each table or feature
+        $this->call([
+            CategoriesPodcastSeeder::class,
+            // Add other seeders here
+        ]);
+
         // User::factory(10)->create();
 
         User::factory()->create([
