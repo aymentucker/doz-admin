@@ -13,5 +13,8 @@ class CategoriesPodcast extends Model
         'image',
         'description',
     ];
-
+    public function podcasts()
+    {
+        return $this->hasMany(Podcasts::class, 'category_id');
+    }
 }

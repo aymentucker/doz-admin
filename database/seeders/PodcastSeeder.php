@@ -22,6 +22,7 @@ class PodcastSeeder extends Seeder
                 'rss_feed_url' => 'https://anchor.fm/s/ec5e9754/podcast/rss',
                 'image' => 'https://via.placeholder.com/150',
                 'category_id' => 1,
+                'user_id' => 1,
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
             ],
@@ -31,6 +32,8 @@ class PodcastSeeder extends Seeder
                 'rss_feed_url' => 'https://anchor.fm/s/ec5e9754/podcast/rss',
                 'image' => 'https://via.placeholder.com/150',
                 'category_id' => 2,
+                'user_id' => 1,
+
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
             ],
@@ -40,6 +43,8 @@ class PodcastSeeder extends Seeder
                 'rss_feed_url' => 'https://anchor.fm/s/ec5e9754/podcast/rss',
                 'image' => 'https://via.placeholder.com/150',
                 'category_id' => 3,
+                'user_id' => 1,
+
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
             ],

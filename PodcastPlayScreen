@@ -1,0 +1,397 @@
+import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
+
+class PodcastPlayScreen extends StatefulWidget {
+  final String audioUrl;
+  final String hostName;
+  final String title;
+  final String imageUrl;
+  final String description;
+  final String duration;
+
+  const PodcastPlayScreen({
+    Key? key,
+    required this.audioUrl,
+    required this.hostName,
+    required this.title,
+    required this.imageUrl,
+    required this.description,
+    required this.duration,
+  }) : super(key: key);
+
+  @override
+  _PodcastPlayScreenState createState() => _PodcastPlayScreenState();
+}
+
+class _PodcastPlayScreenState extends State<PodcastPlayScreen> {
+  late AudioPlayer _audioPlayer;
+  late Stream<Duration?> _positionStream;
+  late Stream<PlayerState> _playerStateStream;
+  bool _loadError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _audioPlayer = AudioPlayer();
+
+    // Create a MediaItem
+    final mediaItem = MediaItem(
+      id: widget.audioUrl, // Unique ID for the media item
+      album: 'Album Name', // Optional, you can provide the podcast name or episode series
+      title: widget.title,
+      artist: widget.hostName,
+      duration: parseDuration(widget.duration), // Convert duration string to Duration
+      artUri: Uri.parse(widget.imageUrl),
+    );
+
+    // Set the audio source with the MediaItem tag
+    _audioPlayer.setAudioSource(
+      AudioSource.uri(
+        Uri.parse(widget.audioUrl),
+        tag: mediaItem,
+      ),
+    ).catchError((error) {
+      print('Error loading audio: $error');
+      setState(() {
+        _loadError = true;
+      });
+    });
+
+    // Initialize streams
+    _positionStream = _audioPlayer.positionStream;
+    _playerStateStream = _audioPlayer.playerStateStream;
+  }
+
+  Duration? parseDuration(String durationStr) {
+    try {
+      if (durationStr.isEmpty) return null;
+      final parts = durationStr.split(':').map(int.parse).toList();
+      if (parts.length == 3) {
+        return Duration(hours: parts[0], minutes: parts[1], seconds: parts[2]);
+      } else if (parts.length == 2) {
+        return Duration(minutes: parts[0], seconds: parts[1]);
+      } else if (parts.length == 1) {
+        return Duration(seconds: parts[0]);
+      }
+    } catch (e) {
+      print('Error parsing duration: $e');
+    }
+    return null;
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+    if (hours > 0) {
+      return '${twoDigits(hours)}:${twoDigits(minutes)}:${twoDigits(seconds)}';
+    } else {
+      return '${twoDigits(minutes)}:${twoDigits(seconds)}';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          widget.title,
+          style: const TextStyle(color: Colors.black),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.more_vert, color: Colors.black),
+            onPressed: () {
+              // Handle more actions
+            },
+          ),
+        ],
+      ),
+      body:  _loadError
+        ? const Center(
+            child: Text(
+              'Unable to load audio. Please try again later.',
+              style: TextStyle(fontSize: 18, color: Colors.red),
+            ),
+          )
+        : Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildPodcastImage(),
+          const SizedBox(height: 16),
+          _buildPodcastDetails(),
+          const SizedBox(height: 16),
+          _buildPodcastControls(),
+          const SizedBox(height: 24),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              'قد يعجبك أيضاً',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildSuggestions(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPodcastImage() {
+    return Center(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Image.network(
+          widget.imageUrl,
+          width: 300,
+          height: 200,
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPodcastDetails() {
+    return Center(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              widget.title,
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            widget.hostName,
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPodcastControls() {
+    return StreamBuilder<PlayerState>(
+      stream: _playerStateStream,
+      builder: (context, snapshot) {
+        final playerState = snapshot.data;
+        final isPlaying = playerState?.playing ?? false;
+
+        return Column(
+          children: [
+         // Update the type of StreamBuilder to Duration?
+StreamBuilder<Duration?>(
+  stream: _audioPlayer.durationStream,
+  builder: (context, snapshot) {
+    final duration = snapshot.data ?? Duration.zero;
+    return StreamBuilder<Duration?>(
+      stream: _positionStream,
+      builder: (context, snapshot) {
+        var position = snapshot.data ?? Duration.zero;
+        if (position > duration) {
+          position = duration;
+        }
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(_formatDuration(position), style: const TextStyle(color: Colors.black)),
+                  Text('-${_formatDuration(duration - position)}', style: const TextStyle(color: Colors.black)),
+                ],
+              ),
+            ),
+            Slider(
+              value: position.inMilliseconds.toDouble(),
+              min: 0.0,
+              max: duration.inMilliseconds.toDouble(),
+              activeColor: Colors.blue,
+              inactiveColor: Colors.grey.shade300,
+              onChanged: (value) {
+                _audioPlayer.seek(Duration(milliseconds: value.toInt()));
+              },
+            ),
+          ],
+        );
+      },
+    );
+  },
+),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.volume_up, color: Colors.black),
+                  onPressed: () {
+                    // Handle volume action
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.replay_10, color: Colors.black),
+                  onPressed: () {
+                    // Rewind 10 seconds
+                    _audioPlayer.seek(
+                      _audioPlayer.position - const Duration(seconds: 10),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: Icon(
+                    isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                    color: Colors.blue,
+                    size: 75,
+                  ),
+                  onPressed: () {
+                    // Toggle play/pause
+                    if (isPlaying) {
+                      _audioPlayer.pause();
+                    } else {
+                      _audioPlayer.play();
+                    }
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.forward_10, color: Colors.black),
+                  onPressed: () {
+                    // Forward 10 seconds
+                    _audioPlayer.seek(
+                      _audioPlayer.position + const Duration(seconds: 10),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.shuffle, color: Colors.black),
+                  onPressed: () {
+                    // Handle shuffle action
+                  },
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSuggestions() {
+    return Expanded(
+      child: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          _buildSuggestionItem(
+            title: 'ابتكار واستدامة: بناء مشاريع مستقبلية',
+            duration: '1h 13m',
+            views: '288.4K',
+            imageUrl: 'https://via.placeholder.com/150',
+          ),
+          const SizedBox(height: 12),
+          _buildSuggestionItem(
+            title: 'المشاريع الناشئة: من الفكرة إلى التنفيذ',
+            duration: '1h 13m',
+            views: '288.4K',
+            imageUrl: 'https://via.placeholder.com/150',
+          ),
+        ],
+      ),
+    );
+  }
+ Widget _buildSuggestionItem({
+  required String title,
+  required String duration,
+  required String views,
+  required String imageUrl,
+}) {
+  return Container(
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Colors.grey.shade300),
+    ),
+    padding: const EdgeInsets.all(12),
+    child: Row(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.network(
+            imageUrl,
+            width: 90,
+            height: 90,
+            fit: BoxFit.cover,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.play_circle_outline, color: Colors.blue, size: 20), // Play icon smaller and styled
+                  const SizedBox(width: 8),
+                  Text(
+                    duration,
+                    style: const TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                  const SizedBox(width: 16),
+                  Row(
+                    children: [
+                      const Icon(Icons.visibility_outlined, size: 18, color: Colors.black54), // Eye icon for views
+                      const SizedBox(width: 4),
+                      Text(
+                        views,
+                        style: const TextStyle(fontSize: 12, color: Colors.black54),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+}

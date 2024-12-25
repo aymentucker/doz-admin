@@ -15,12 +15,14 @@ class DatabaseSeeder extends Seeder
     {
         // Call individual seeders for each table or feature
         $this->call([
+            UsersSeeder::class,
             CategoriesPodcastSeeder::class,
             PodcastSeeder::class,
+            PodcastEpisodesSeeder::class
             // Add other seeders here
         ]);
 
-        // User::factory(10)->create();
+        User::factory(10)->create();
 
         User::factory()->create([
             'name' => 'Test User',

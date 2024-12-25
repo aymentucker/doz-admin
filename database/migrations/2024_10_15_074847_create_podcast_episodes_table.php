@@ -11,17 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('podcasts', function (Blueprint $table) {
+        Schema::create('podcast_episodes', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('podcast_id')->constrained('podcasts')->onDelete('cascade');
             $table->string('title');
-            $table->text('description');
-            $table->string('rss_feed_url');
-            $table->string('image');
-            $table->foreignId('category_id')->constrained('categories_podcasts')->onDelete('cascade');
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade'); // Add this line
+            $table->text('description')->nullable();
+            $table->string('audio_url');
+            $table->string('image_url')->nullable();
+            $table->string('duration')->nullable();
+            $table->dateTime('published_at');
             $table->timestamps();
         });
-
     }
 
     /**
@@ -29,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('podcasts');
+        Schema::dropIfExists('podcast_episodes');
     }
 };
